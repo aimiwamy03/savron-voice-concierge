@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Concierge</title>
+<style>
+  :root { --ink:#17161a; --muted:#6c6972; --accent:#17161a; --bg:#f6f5f2; --card:#fff; --line:#e5e2db; --bad:#a3341f; --ok:#2d6a45; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:20px 24px 4px; }
+  h1 { margin:0; font-size:20px; }
+  header p { margin:4px 0 0; color:var(--muted); }
+  main { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; padding:16px 24px 32px; align-items:start; }
+  @media (max-width:860px) { main { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .controls { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  button { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  #call { background:var(--accent); color:#fff; border:none; font-weight:600; }
+  #status,.hint { color:var(--muted); font-size:13px; }
+  #transcript { height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:80%; padding:8px 12px; border-radius:12px; }
+  .user { align-self:flex-end; background:#e9e7e1; }
+  .assistant { align-self:flex-start; background:#f3efe4; }
+  .sys { align-self:center; color:var(--muted); font-size:13px; }
+  h2 { font-size:15px; margin:0 0 8px; }
+  .mono { font:12px/1.4 ui-monospace,Menlo,monospace; white-space:pre-wrap; overflow-wrap:anywhere; max-height:240px; overflow-y:auto; }
+  .row { border-top:1px solid var(--line); padding:6px 0; font-size:13px; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Voice Concierge</h1>
+  <p>Everything the agent knows below was just read from the shop's public pages.</p>
+</header>
+<main>
+  <section>
+    <div class="card">
+      <div class="controls">
+        <button id="call">Start call</button>
+        <span id="status">Ready</span>
+      </div>
+      <div id="transcript" aria-live="polite"></div>
+      <p class="hint">Use headphones so the agent doesn't hear itself. Chrome works best.</p>
+    </div>
+    <div class="card"><h2>Tool calls</h2><div id="tools" class="mono"><span class="hint">Shown during a call.</span></div></div>
+  </section>
+  <section>
+    <div class="card">
+      <div class="controls" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Live sources</h2><button id="refresh">Pull again</button></div>
+      <div id="sources" class="hint">Loading.</div>
+    </div>
+    <div class="card"><h2>What the agent knows</h2><div id="facts" class="hint">Loading.</div></div>
+    <div class="card"><h2>Requests</h2><div id="requests" class="hint">None yet.</div></div>
+    <div class="card"><h2>Texts</h2><div id="texts" class="hint">None yet.</div></div>
+  </section>
+</main>
+<script src="digits.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

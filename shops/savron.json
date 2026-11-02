@@ -1,0 +1,67 @@
+{
+  "id": "savron",
+  "timezone": "America/Chicago",
+  "agent_name": "Mia",
+  "sources": [
+    {
+      "id": "site",
+      "label": "SAVRON website",
+      "type": "page",
+      "url": "https://savronmn.com/",
+      "jsonld": true,
+      "facts": {
+        "neighborhood": "Located in the ([A-Z][\\w ]+), [A-Z]",
+        "walk_ins": "([^.\\n]*walk-ins[^.\\n]*welcome\\.)",
+        "membership": "([^\\n]*membership pass[^\\n]*)",
+        "membership_access": "(Invitation only)"
+      },
+      "menu": { "start": "The Menu", "end": "Reserve a Session", "item_end": "Book →" }
+    },
+    {
+      "id": "site_booking",
+      "label": "SAVRON booking page",
+      "type": "constant_url",
+      "url": "https://savronmn.com/booking",
+      "fact": "booking_url"
+    },
+    {
+      "id": "site_menu_article",
+      "label": "SAVRON journal, full menu article",
+      "type": "page",
+      "url": "https://savronmn.com/blog/savron-menu-every-service-explained-minneapolis",
+      "facts": { "prices_as_of": "^((?:January|February|March|April|May|June|July|August|September|October|November|December) \\d{1,2}, \\d{4})$" },
+      "priced_list": "^\\s*\\d+\\.\\s+(.+?)(?:\\s+·\\s+|\\.\\s+)(.*?)\\s*\\(\\$(\\d+)\\s*·\\s*(\\d+)\\s*min\\)",
+      "addons": "Add-on[^:\\n]*:\\s*([A-Za-z ]+?)\\s*\\(\\+\\$(\\d+)\\)"
+    },
+    {
+      "id": "site_terms",
+      "label": "SAVRON terms",
+      "type": "page",
+      "url": "https://savronmn.com/terms",
+      "facts": { "cancellation_policy": "((?:If you need to )?cancel or reschedule[^.]*?at least \\d+ hours in advance)" }
+    },
+    {
+      "id": "classpass",
+      "label": "ClassPass",
+      "type": "page",
+      "url": "https://classpass.com/studios/savron-barbershop-and-lounge-minneapolis",
+      "jsonld": true,
+      "fail_if": "heavy lifting|\\| Error",
+      "facts": { "phone": "(\\+1[ \\d-]{10,14}\\d)", "address_full": "(\\d+ [^\\n,]+,\\s*Ste \\d+,[^\\n]*\\d{5})" }
+    },
+    {
+      "id": "booksy_kris",
+      "label": "Booksy, Krisbladez@Savron",
+      "type": "booksy",
+      "url": "https://booksy.com/en-us/1742041_krisbladez-savron-north-loop_barber-shop_134619_minneapolis"
+    },
+    {
+      "id": "north_loop",
+      "label": "North Loop Neighborhood Association article",
+      "type": "page",
+      "url": "https://northloop.org/this-is-what-the-new-luxury-spot-for-men-will-be/",
+      "facts": {},
+      "people": [{ "role": "owner", "regex": "The owner,\\s+([A-Z][a-z]+ [A-Z][a-z]+)" }]
+    }
+  ]
+}

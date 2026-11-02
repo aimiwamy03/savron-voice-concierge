@@ -1,0 +1,18 @@
+{
+  "name": "voice-concierge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI phone concierge for barbershops. Every shop fact is pulled live from public sources; a shop is just a config file.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node --test test/*.test.js",
+    "live": "node scripts/show-live.js",
+    "validate:settings": "node scripts/validate-settings.js",
+    "test:calls": "node --env-file-if-exists=.env scripts/test-calls.js"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": { "ws": "^8.22.0" },
+  "devDependencies": { "ajv": "^8.20.0", "js-yaml": "^4.3.2" }
+}

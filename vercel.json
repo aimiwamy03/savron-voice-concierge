@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "fluid": true,
+  "functions": {
+    "api/[[...path]].js": {
+      "maxDuration": 300,
+      "includeFiles": "shops/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/call", "destination": "/api/call" },
+    { "source": "/twilio/:path*", "destination": "/api/twilio/:path*" }
+  ]
+}

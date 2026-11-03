@@ -132,6 +132,16 @@ test('phone call: signed webhook, one-time stream token, audio both ways, barge 
   r.stop();
 });
 
+test('the hosted site allows the page that a tunnel keeps private', async () => {
+  const r = await rig({ VERCEL: '1' });
+  const get = (path, headers) => new Promise((resolve) => { http.get({ port: r.port, host: '127.0.0.1', path, headers }, (res) => { res.resume(); resolve(res.statusCode); }); });
+  assert.strictEqual(await get('/api/state', { 'x-forwarded-for': '1.2.3.4', 'x-forwarded-host': 'shop.vercel.app' }), 200);
+  const ws = new WebSocket(`ws://127.0.0.1:${r.port}/api/call`, { headers: { 'x-forwarded-for': '1.2.3.4' } });
+  await once(ws, 'open');
+  ws.close();
+  r.stop();
+});
+
 test('page data and browser calls refuse anything coming through a tunnel', async () => {
   const r = await rig();
   const get = (headers) => new Promise((resolve) => { http.get({ port: r.port, host: '127.0.0.1', path: '/api/state', headers }, (res) => { res.resume(); resolve(res.statusCode); }); });

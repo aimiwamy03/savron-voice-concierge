@@ -12,22 +12,47 @@ const twilio = require('./src/twilio');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
 const SHOP_ID = /^[a-z0-9-]+$/;
 
+// Shop files stay next to this module locally. On Vercel the function bundle
+// includes shops/ at the project root, which is the process working directory.
+function projectRoot() {
+  const candidates = [__dirname, path.join(__dirname, '..'), process.cwd()];
+  return candidates.find((dir) => fs.existsSync(path.join(dir, 'shops'))) || __dirname;
+}
+
 function loadShopConfig(id) {
   if (!SHOP_ID.test(id)) throw new Error(`Bad shop id: ${id}`);
-  return JSON.parse(fs.readFileSync(path.join(__dirname, 'shops', `${id}.json`), 'utf8'));
+  return JSON.parse(fs.readFileSync(path.join(projectRoot(), 'shops', `${id}.json`), 'utf8'));
 }
 
 // SHOP picks the config. With a single file in shops/, that one is the default.
 function defaultShopId(env = process.env) {
   if (env.SHOP) return env.SHOP;
-  const ids = fs.readdirSync(path.join(__dirname, 'shops')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
+  const ids = fs.readdirSync(path.join(projectRoot(), 'shops')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
   if (ids.length !== 1) throw new Error(`Set SHOP to one of: ${ids.join(', ')}`);
   return ids[0];
 }
 
 // A tunnel to this machine still connects from loopback, but it adds forwarding
 // headers. The page and its data hold callers' numbers, so they stay local.
+// Vercel always forwards the client, and that deployment is the public site.
 const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !req.headers['x-forwarded-for'] && !req.headers['x-forwarded-host'];
+const browserAllowed = (req, env) => env.VERCEL === '1' || isLocal(req);
+
+// Vercel serves this app from /api and rewrites /call and /twilio/* onto it.
+function pathnameOf(req) {
+  const url = new URL(req.url || '/', 'http://localhost');
+  let { pathname } = url;
+  if (pathname === '/api/call') pathname = '/call';
+  else if (pathname === '/api/twilio' || pathname.startsWith('/api/twilio/')) pathname = pathname.slice('/api'.length);
+  return { url, pathname };
+}
+
+function originOf(req, env) {
+  if (env.PUBLIC_URL) return String(env.PUBLIC_URL).replace(/\/$/, '');
+  const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  return host ? `${proto}://${host}` : '';
+}
 
 function createServer({ config, env = process.env, shopInfo, sms, agentUrl, clock, log = console.log } = {}) {
   const apiKey = env.DEEPGRAM_API_KEY;
@@ -35,7 +60,8 @@ function createServer({ config, env = process.env, shopInfo, sms, agentUrl, cloc
   const ledger = createLedger();
   const texts = sms || createSms(env, { log });
   const tokens = twilio.createTokens();
-  const publicDir = path.join(__dirname, 'public');
+  const publicDir = path.join(projectRoot(), 'public');
+  info.refresh().catch((e) => log(`shop refresh failed: ${e.message}`));
   const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
   const twiml = (res, body) => { res.writeHead(200, { 'content-type': 'text/xml' }); res.end(body); };
 
@@ -43,23 +69,28 @@ function createServer({ config, env = process.env, shopInfo, sms, agentUrl, cloc
     let raw = '';
     for await (const chunk of req) { raw += chunk; if (raw.length > 100000) return json(res, 413, {}); }
     const params = Object.fromEntries(new URLSearchParams(raw));
-    const url = `${env.PUBLIC_URL}/twilio/voice`;
+    const origin = originOf(req, env);
+    const url = `${origin}/twilio/voice`;
     if (!twilio.validSignature({ authToken: env.TWILIO_AUTH_TOKEN, url, params, signature: req.headers['x-twilio-signature'] })) return json(res, 403, { error: 'Bad signature' });
     const shop = await info.forCall();
     if (!apiKey || !shop || !shop.spoken_name) return twiml(res, twilio.sorryTwiml('Sorry, our assistant is not available right now. Please call back soon.'));
-    return twiml(res, twilio.streamTwiml(`${env.PUBLIC_URL.replace(/^http/, 'ws')}/twilio/stream`, tokens.issue()));
+    return twiml(res, twilio.streamTwiml(`${origin.replace(/^http/, 'ws')}/twilio/stream`, tokens.issue()));
   }
 
   const server = http.createServer((req, res) => {
-    const url = new URL(req.url, 'http://localhost');
-    if (req.method === 'POST' && url.pathname === '/twilio/voice') {
+    const { url, pathname } = pathnameOf(req);
+    if (req.method === 'POST' && pathname === '/twilio/voice') {
       return onVoiceWebhook(req, res).catch((e) => { log(`voice webhook failed: ${e.message}`); if (!res.headersSent) json(res, 500, {}); });
     }
-    if (!isLocal(req)) return json(res, 403, { error: 'Local only' });
-    if (url.pathname === '/api/shop') return json(res, 200, info.current());
-    if (req.method === 'POST' && url.pathname === '/api/shop/refresh') return info.refresh().then((s) => json(res, 200, s));
-    if (url.pathname === '/api/state') return json(res, 200, { ...ledger.list(), texts: texts.outbox, texts_live: texts.live, has_key: !!apiKey });
-    const file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
+    if (!browserAllowed(req, env)) return json(res, 403, { error: 'Local only' });
+    if (pathname === '/api/shop') {
+      const snap = info.current();
+      if (snap) return json(res, 200, snap);
+      return info.refresh().then((s) => json(res, 200, s)).catch((e) => { log(`shop refresh failed: ${e.message}`); if (!res.headersSent) json(res, 500, {}); });
+    }
+    if (req.method === 'POST' && pathname === '/api/shop/refresh') return info.refresh().then((s) => json(res, 200, s));
+    if (pathname === '/api/state') return json(res, 200, { ...ledger.list(), texts: texts.outbox, texts_live: texts.live, has_key: !!apiKey });
+    const file = pathname === '/' ? 'index.html' : pathname.slice(1);
     const full = path.join(publicDir, path.normalize(file));
     if (!full.startsWith(publicDir + path.sep) || !fs.existsSync(full) || fs.statSync(full).isDirectory()) { res.writeHead(404); return res.end('Not found'); }
     res.writeHead(200, { 'content-type': MIME[path.extname(full)] || 'application/octet-stream' });
@@ -98,8 +129,8 @@ function createServer({ config, env = process.env, shopInfo, sms, agentUrl, cloc
   // Sockets are matched by hand so each one has its own access rule.
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1 << 20 });
   server.on('upgrade', (req, socket, head) => {
-    const { pathname } = new URL(req.url, 'http://localhost');
-    const route = pathname === '/twilio/stream' ? startPhoneCall : pathname === '/call' && isLocal(req) ? startBrowserCall : null;
+    const { pathname } = pathnameOf(req);
+    const route = pathname === '/twilio/stream' ? startPhoneCall : pathname === '/call' && browserAllowed(req, env) ? startBrowserCall : null;
     if (!route) { socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); return socket.destroy(); }
     return wss.handleUpgrade(req, socket, head, (ws) => {
       Promise.resolve(route(ws)).catch((e) => { log(`call failed to start: ${e.message}`); ws.close(); });

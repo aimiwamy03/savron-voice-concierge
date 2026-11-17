@@ -71,9 +71,13 @@ For real calls, set `PUBLIC_URL` to a tunnel or host that reaches this server, a
 ```bash
 npm test                    # offline: parsing, merging, tools, full call against fake Deepgram and Twilio
 npm run validate:settings   # live pull, checked against Deepgram's published schema
-npm run test:calls          # the build sheet's 10 test calls against a real agent (uses Deepgram credit)
+npm run test:calls          # the build sheet's 12 test calls against a real agent (uses Deepgram credit)
 npm run test:calls -- 3,6   # just those calls
 ```
+
+The test suite includes 12 automated calls plus one Cekura-only test (call 13: barge-in) that requires real audio and must be run over the Twilio phone line.
+
+Optional AI-judge checks evaluate subjective qualities (tone, Spanish naturalness, fact accuracy) when `OPENAI_API_KEY` is set. Without it, only rule-based checks run.
 
 ## Files
 

@@ -66,7 +66,7 @@ const definitions = [
   },
   {
     name: 'send_confirmation',
-    description: 'Text the caller that their request was received. Pass the code returned by book, request_approval, reschedule, or cancel.',
+    description: 'Try to text the caller that their request was received. Delivery is not guaranteed, so never promise the text. Pass the code returned by book, request_approval, reschedule, or cancel.',
     parameters: { type: 'object', properties: { confirmation_code: { type: 'string' } }, required: ['confirmation_code'] },
   },
   {
@@ -130,7 +130,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
         if (!h) return { ok: true, live_calendar: false, works_that_day: false, say: `${b.name}'s listing shows no hours that day. Ask for another day.` };
         return { ok: true, live_calendar: false, works_that_day: true, listed_hours: `${spoken(h[0])} to ${spoken(h[1])}`, say: `Open times are not visible. Ask for a preferred time inside ${b.name}'s listed hours and send it as a request.` };
       }
-      return { ok: true, live_calendar: false, say: 'Open times are not visible. Ask for a preferred time and send it as a request. The team will confirm by text.' };
+      return { ok: true, live_calendar: false, say: 'Open times are not visible. Ask for a preferred time and send it as a request. The team will reach out to confirm.' };
     },
 
     book: (args) => placeRequest(args, 'book'),
@@ -152,7 +152,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
       const lang = CONFIRM_TEXT[r.language] ? r.language : 'en';
       sms.send({ to: r.customer_phone, body: CONFIRM_TEXT[lang]({ shop: shop.spoken_name, what: r.what, code: r.code }), kind: 'confirmation' });
       r.confirmation_sent = true;
-      return { ok: true, say: 'Tell the caller a text is on the way.' };
+      return { ok: true, say: 'Do not promise a text. You may say they might also get a text with their request details.' };
     },
 
     notify_shop({ summary, caller_name, callback_phone, urgent }) {
@@ -195,7 +195,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
     const detail = `${args.customer_name} (${phone}) asks for ${what}. Ref ${r.code}.`;
     if (barber && barber.external) sms.notifyBarber(barber.name, `${shop.spoken_name} request: ${detail} Booked outside this line, so please add it to your calendar and text them to confirm.`);
     else sms.notifyShop(`${shop.spoken_name} booking request: ${detail} Please add it to the calendar and text them to confirm.`);
-    return { ok: true, status: r.status, confirmation_code: r.code, say: 'Tell the caller this is a request and the shop will confirm by text. Then call send_confirmation.' };
+    return { ok: true, status: r.status, confirmation_code: r.code, say: 'Tell the caller this is a request and the team will reach out to confirm. Do not promise a text. Then call send_confirmation.' };
   }
 
   function changeRequest(args, type, change) {
@@ -209,7 +209,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
     const body = `${shop.spoken_name} ${type} request: ${r.customer_name || 'Caller'} (${target || 'no number on file, code only'}): ${what}. Ref ${r.code}.`;
     if (original && original.status === 'awaiting_barber_approval') sms.notifyBarber(original.barber, body);
     else sms.notifyShop(body);
-    return { ok: true, status: r.status, confirmation_code: r.code, found_on_this_line: !!original, say: 'Tell the caller the request is in and the team will confirm by text. Then call send_confirmation.' };
+    return { ok: true, status: r.status, confirmation_code: r.code, found_on_this_line: !!original, say: 'Tell the caller the request is in and the team will reach out to confirm. Do not promise a text. Then call send_confirmation.' };
   }
 
   return {

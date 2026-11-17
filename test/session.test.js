@@ -69,6 +69,38 @@ test('the phone number gate blocks a booking until the read back, then the live 
   r.stop();
 });
 
+test('a number read back as numerals does not pass the gate, and the agent is told the exact words to say', async () => {
+  const r = await rig();
+  const dgConn = once(r.dgServer, 'connection');
+  const ws = new WebSocket(`ws://127.0.0.1:${r.port}/call`);
+  const caller = collector(ws);
+  const dg = await dgConn;
+  const agent = collector(dg);
+  await agent.until((m) => m.type === 'Settings');
+  dg.send(JSON.stringify({ type: 'SettingsApplied' }));
+  await caller.until((m) => m.status === 'live');
+
+  const args = JSON.stringify({ service: 'House Cut', barber: 'Dee', date: '2026-11-07', time: '14:00', customer_name: 'Jordan', customer_phone: '6125550147' });
+  // What Cekura caught: the whole number as one string of numerals.
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'Signature Cut with Albe, Saturday afternoon, Jordan, 6125550147. Correct?' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'user', content: 'yes' }));
+  dg.send(JSON.stringify({ type: 'FunctionCallRequest', functions: [{ id: '1', name: 'book', arguments: args, client_side: true }] }));
+  const first = JSON.parse((await agent.until((m) => m.type === 'FunctionCallResponse' && m.id === '1')).content);
+  assert.strictEqual(first.error, 'READ_BACK_PHONE_FIRST');
+  assert.strictEqual(first.say_exactly, 'six one two, five five five, zero one four seven');
+  assert.match(first.say, /in words/);
+  assert.strictEqual(r.ledger.list().requests.length, 0);
+
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'Let me read that back: six one two, five five five, zero one four seven. Is that right?' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'user', content: 'yes' }));
+  dg.send(JSON.stringify({ type: 'FunctionCallRequest', functions: [{ id: '2', name: 'book', arguments: args, client_side: true }] }));
+  const second = JSON.parse((await agent.until((m) => m.type === 'FunctionCallResponse' && m.id === '2')).content);
+  assert.strictEqual(second.ok, true);
+  assert.doesNotMatch(second.say, /by text|on the way/);
+  ws.close();
+  r.stop();
+});
+
 test('a Spanish caller switches the voice', async () => {
   const r = await rig();
   const dgConn = once(r.dgServer, 'connection');

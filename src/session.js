@@ -6,7 +6,7 @@ const { buildSettings } = require('./settings');
 const { createTools, normPhone } = require('./tools');
 const { localParts } = require('./time');
 const lang = require('./languages');
-const { phoneReadBack } = require('./readback');
+const { phoneReadBack, phoneInWords } = require('./readback');
 
 const noDashes = (t) => String(t).replace(/\s*[–—]\s*/g, ', ').replace(/,\s*([,.?!])/g, '$1');
 const DEFAULT_AGENT_URL = 'wss://agent.deepgram.com/v1/agent/converse';
@@ -104,12 +104,13 @@ class CallSession {
     const r = phoneReadBack(this.history, phone);
     if (r.ok) return null;
     const groups = `${phone.slice(0, 3)}, ${phone.slice(3, 6)}, ${phone.slice(6)}`;
-    return {
-      ok: false, error: 'READ_BACK_PHONE_FIRST', phone_groups: groups,
-      say: r.reason === 'NOT_CONFIRMED'
-        ? 'Nothing was sent yet. Ask if that number is right and wait for the answer, then call this again.'
-        : `Nothing was sent yet. Read the number back digit by digit in three groups (${groups}), in the caller's language, and ask if it is right. Call this again after they confirm.`,
-    };
+    const words = phoneInWords(phone, this.language);
+    const say = {
+      NOT_CONFIRMED: 'Nothing was sent yet. Ask if that number is right and wait for the answer, then call this again.',
+      NOT_IN_WORDS: `Nothing was sent yet. You said the number as numerals, which a voice reads as one big number. Say it again in words, one digit at a time, exactly like this: "${words}". Ask if it is right, then call this again after they confirm.`,
+      NOT_READ_BACK: `Nothing was sent yet. Read the number back in words, one digit at a time, exactly like this: "${words}", and ask if it is right. Call this again after they confirm.`,
+    }[r.reason];
+    return { ok: false, error: 'READ_BACK_PHONE_FIRST', phone_groups: groups, say_exactly: words, say };
   }
 
   // Moving or cancelling needs the caller to answer after the agent has spoken.

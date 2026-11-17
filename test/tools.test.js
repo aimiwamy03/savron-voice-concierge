@@ -89,3 +89,15 @@ test('without Twilio nothing is sent, and the outbox says so', () => {
   assert.strictEqual(sms.outbox[0].status, 'not_sent_no_twilio');
   assert.match(sms.outbox[0].body, /^URGENT/);
 });
+
+test('no tool tells the agent to promise a text will arrive', () => {
+  const { tools } = setup();
+  const promise = /by text|on the way|text is coming/i;
+  const avail = tools.run('check_availability', { date: '2026-11-07' });
+  const booked = tools.run('book', req());
+  const approval = tools.run('request_approval', req({ barber: 'Jo', service: 'Adult Haircut' }));
+  const moved = tools.run('reschedule', { confirmation_code: booked.confirmation_code, new_date: '2026-11-08', new_time: '15:00' });
+  const confirm = tools.run('send_confirmation', { confirmation_code: booked.confirmation_code });
+  for (const r of [avail, booked, approval, moved, confirm]) assert.doesNotMatch(r.say || '', promise);
+  assert.match(confirm.say, /Do not promise a text/);
+});

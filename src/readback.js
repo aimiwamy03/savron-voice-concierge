@@ -63,13 +63,32 @@ function saidPhone(text, phone) {
   return joined.includes(phone);
 }
 
+// A voice reads "6125550147" as one big number and "612" as "six twelve", so a
+// read-back only counts when the digits were written as words. Short numerals
+// elsewhere in the sentence ("2 PM") are fine.
+const hasNumeralRun = (text) => /\d{3,}/.test(String(text || ''));
+
+const DIGIT_WORDS = {
+  en: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
+  es: ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'],
+};
+
+// "6125550147" -> "six one two, five five five, zero one four seven"
+function phoneInWords(phone, lang = 'en') {
+  const words = DIGIT_WORDS[lang] || DIGIT_WORDS.en;
+  const d = String(phone || '').replace(/\D/g, '');
+  const say = (s) => [...s].map((c) => words[Number(c)]).join(' ');
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).map(say).join(', ');
+}
+
 // history: [{ role: 'user'|'assistant', content }] in order.
 function phoneReadBack(history, phone) {
   let readAt = -1;
   history.forEach((h, i) => { if (h.role === 'assistant' && saidPhone(h.content, phone)) readAt = i; });
   if (readAt < 0) return { ok: false, reason: 'NOT_READ_BACK' };
+  if (hasNumeralRun(history[readAt].content)) return { ok: false, reason: 'NOT_IN_WORDS' };
   const confirmed = history.slice(readAt + 1).some((h) => h.role === 'user');
   return confirmed ? { ok: true } : { ok: false, reason: 'NOT_CONFIRMED' };
 }
 
-module.exports = { spokenDigitRuns, saidPhone, phoneReadBack };
+module.exports = { spokenDigitRuns, saidPhone, phoneReadBack, phoneInWords, hasNumeralRun };

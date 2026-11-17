@@ -210,3 +210,32 @@ test('end_call after the goodbye has finished hangs up instead of letting the ag
   assert.ok(!agent.msgs.some((m) => m.type === 'FunctionCallResponse' && m.id === 'bye'), 'no response, so no second goodbye');
   r.stop();
 });
+
+test('first available is blocked until the agent has asked about a barber', async () => {
+  const r = await rig();
+  const dgConn = once(r.dgServer, 'connection');
+  const ws = new WebSocket(`ws://127.0.0.1:${r.port}/call`);
+  const caller = collector(ws);
+  const dg = await dgConn;
+  const agent = collector(dg);
+  await agent.until((m) => m.type === 'Settings');
+  dg.send(JSON.stringify({ type: 'SettingsApplied' }));
+  await caller.until((m) => m.status === 'live');
+
+  const args = JSON.stringify({ service: 'House Cut', barber: 'first available', date: '2026-11-07', time: '14:00', customer_name: 'Jordan', customer_phone: '6125550147' });
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'user', content: 'I want to book a House Cut on Saturday.' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'Jordan, six one two, five five five, zero one four seven. Is that right?' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'user', content: 'yes' }));
+  dg.send(JSON.stringify({ type: 'FunctionCallRequest', functions: [{ id: '1', name: 'book', arguments: args, client_side: true }] }));
+  const first = JSON.parse((await agent.until((m) => m.type === 'FunctionCallResponse' && m.id === '1')).content);
+  assert.strictEqual(first.error, 'ASK_BARBER_FIRST');
+  assert.strictEqual(r.ledger.list().requests.length, 0);
+
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'Do you have a barber in mind, or is first available fine?' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'user', content: 'First available is fine.' }));
+  dg.send(JSON.stringify({ type: 'FunctionCallRequest', functions: [{ id: '2', name: 'book', arguments: args, client_side: true }] }));
+  const second = JSON.parse((await agent.until((m) => m.type === 'FunctionCallResponse' && m.id === '2')).content);
+  assert.strictEqual(second.ok, true);
+  ws.close();
+  r.stop();
+});

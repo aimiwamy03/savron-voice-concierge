@@ -115,6 +115,18 @@ class CallSession {
     return { ok: false, error: 'READ_BACK_PHONE_FIRST', phone_groups: groups, say_exactly: words, say };
   }
 
+  // "First available" has to be the caller's choice. Cekura caught the agent
+  // booking first available without ever asking, so the caller's preferred
+  // barber was never heard.
+  barberGate(fn) {
+    if (fn.name !== 'book') return null;
+    const barber = String(safeParse(fn.arguments).barber || '').toLowerCase();
+    if (!/first|any|cualquier|primer/.test(barber)) return null;
+    const asked = this.history.some((h) => h.role === 'assistant' && /barber|barbero|preferen|anyone|cualquier|con qui[eé]n|who would you like/i.test(h.content));
+    const callerSaid = this.history.some((h) => h.role === 'user' && /first available|anyone|any barber|no preference|doesn'?t matter|cualquier|el primero|la primera|no importa/i.test(h.content));
+    return asked || callerSaid ? null : { ok: false, error: 'ASK_BARBER_FIRST', say: 'Nothing was sent yet. Ask if they have a barber in mind, or if first available is fine. Call this again with their answer.' };
+  }
+
   // Moving or cancelling needs the caller to answer after the agent has spoken.
   confirmGate(fn) {
     if (!['reschedule', 'cancel'].includes(fn.name)) return null;
@@ -126,7 +138,7 @@ class CallSession {
   onFunctionCall(msg) {
     for (const fn of msg.functions || []) {
       if (fn.client_side === false || this.cancelled.has(fn.id)) continue;
-      const result = this.readBackGate(fn) || this.confirmGate(fn) || this.tools.run(fn.name, fn.arguments);
+      const result = this.barberGate(fn) || this.readBackGate(fn) || this.confirmGate(fn) || this.tools.run(fn.name, fn.arguments);
       if (fn.name === 'set_language' && result.ok) this.switchLanguage(result.language);
       if (fn.name === 'end_call') {
         this.pendingEnd = true;

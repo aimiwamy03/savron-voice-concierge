@@ -182,7 +182,8 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
     if (!phone) return { ok: false, error: 'BAD_PHONE', say: 'Ask for the full ten digit mobile number.' };
     if (!args.customer_name) return { ok: false, error: 'NO_NAME', say: 'Ask for a name.' };
 
-    const anyone = !args.barber || isFirstAvailable(args.barber);
+    if (!args.barber) return { ok: false, error: 'ASK_BARBER', say: 'Nothing was sent yet. Ask if they have a barber in mind, or if first available is fine.' };
+    const anyone = isFirstAvailable(args.barber);
     const barber = anyone ? null : findBarber(args.barber);
     // A barber the live pages don't list (the owner, a new hire) is still a real
     // preference. Pass it to the team instead of quietly booking "first available".

@@ -131,3 +131,8 @@ test('end_call tells the agent to stay quiet', () => {
   const { tools } = setup();
   assert.match(tools.run('end_call', {}).say, /Say nothing more/);
 });
+
+test('a booking with no barber at all is sent back to ask', () => {
+  const { tools } = setup();
+  assert.strictEqual(tools.run('book', req({ barber: undefined })).error, 'ASK_BARBER');
+});

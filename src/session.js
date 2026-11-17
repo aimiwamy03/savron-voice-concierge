@@ -8,6 +8,7 @@ const { localParts } = require('./time');
 const lang = require('./languages');
 const { phoneReadBack, phoneInWords } = require('./readback');
 
+const GOODBYE = /\b(good ?bye|bye|have a (great|good|nice|wonderful)|take care|see you|thanks for calling|adi[oó]s|hasta (luego|pronto)|que tenga|cu[ií]dese|gracias por llamar)\b/i;
 const noDashes = (t) => String(t).replace(/\s*[–—]\s*/g, ', ').replace(/,\s*([,.?!])/g, '$1');
 const DEFAULT_AGENT_URL = 'wss://agent.deepgram.com/v1/agent/converse';
 const FORWARD = new Set(['Welcome', 'SettingsApplied', 'ConversationText', 'UserStartedSpeaking', 'AgentThinking', 'AgentStartedSpeaking', 'AgentAudioDone', 'Error', 'Warning', 'FunctionCallCancelled']);
@@ -143,8 +144,9 @@ class CallSession {
       if (fn.name === 'end_call') {
         this.pendingEnd = true;
         // The goodbye usually finishes before end_call arrives. Answering the call
-        // would make the agent say goodbye again, so hang up instead.
-        if (!this.speaking) {
+        // would make the agent say goodbye again, so hang up instead, but only if
+        // a goodbye was actually said: Cekura caught a call that ended with none.
+        if (!this.speaking && this.saidGoodbye()) {
           this.toClient({ type: 'tool', name: fn.name, arguments: safeParse(fn.arguments), result });
           // If the goodbye starts after all, AgentAudioDone closes the call instead.
           setTimeout(() => { if (!this.speaking) this.close(); }, 1500);
@@ -155,6 +157,11 @@ class CallSession {
       this.toClient({ type: 'tool', name: fn.name, arguments: safeParse(fn.arguments), result });
       this.sendDg({ type: 'FunctionCallResponse', id: fn.id, name: fn.name, content: JSON.stringify(result) });
     }
+  }
+
+  saidGoodbye() {
+    const last = [...this.history].reverse().find((h) => h.role === 'assistant');
+    return !!last && GOODBYE.test(last.content);
   }
 
   armSilence() {

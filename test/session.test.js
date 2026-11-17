@@ -239,3 +239,28 @@ test('first available is blocked until the agent has asked about a barber', asyn
   ws.close();
   r.stop();
 });
+
+test('end_call without a goodbye yet lets the agent say one before hanging up', async () => {
+  const r = await rig();
+  const dgConn = once(r.dgServer, 'connection');
+  const ws = new WebSocket(`ws://127.0.0.1:${r.port}/call`);
+  const caller = collector(ws);
+  const dg = await dgConn;
+  const agent = collector(dg);
+  await agent.until((m) => m.type === 'Settings');
+  dg.send(JSON.stringify({ type: 'SettingsApplied' }));
+  await caller.until((m) => m.status === 'live');
+
+  // What Cekura caught in round 2: the last thing said was not a goodbye.
+  dg.send(JSON.stringify({ type: 'AgentStartedSpeaking' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'The team will reach out to confirm.' }));
+  dg.send(JSON.stringify({ type: 'AgentAudioDone' }));
+  dg.send(JSON.stringify({ type: 'FunctionCallRequest', functions: [{ id: 'bye', name: 'end_call', arguments: '{}', client_side: true }] }));
+  const res = await agent.until((m) => m.type === 'FunctionCallResponse' && m.id === 'bye');
+  assert.ok(res, 'the agent gets the tool result, so it says its goodbye');
+  dg.send(JSON.stringify({ type: 'AgentStartedSpeaking' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'Have a great day.' }));
+  dg.send(JSON.stringify({ type: 'AgentAudioDone' }));
+  await caller.until((m) => m.status === 'ended');
+  r.stop();
+});

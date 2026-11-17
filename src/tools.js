@@ -171,7 +171,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
     },
 
     set_language: ({ language }) => (['en', 'es'].includes(language) ? { ok: true, language } : { ok: false, error: 'UNSUPPORTED_LANGUAGE' }),
-    end_call: () => ({ ok: true, say: 'The call is ending. Say nothing more.' }),
+    end_call: () => ({ ok: true, say: 'If you have not said goodbye yet, say one short goodbye now. Otherwise say nothing more.' }),
   };
 
   function placeRequest(args, tool) {

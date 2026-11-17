@@ -129,7 +129,7 @@ test('a barber the agent does not know is passed along, never swapped for first 
 
 test('end_call tells the agent to stay quiet', () => {
   const { tools } = setup();
-  assert.match(tools.run('end_call', {}).say, /Say nothing more/);
+  assert.match(tools.run('end_call', {}).say, /one short goodbye/);
 });
 
 test('a booking with no barber at all is sent back to ask', () => {

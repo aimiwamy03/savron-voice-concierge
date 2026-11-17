@@ -79,6 +79,7 @@ const definitions = [
         caller_name: { type: 'string' },
         callback_phone: { type: 'string', description: 'Digits only, if the caller wants a callback.' },
         urgent: { type: 'boolean', description: 'True for complaints or an upset caller.' },
+        caller_declined: { type: 'boolean', description: 'True only if the caller refused to give a name or number.' },
       },
       required: ['summary'],
     },
@@ -88,7 +89,7 @@ const definitions = [
     description: 'Change the voice when the caller changes language.',
     parameters: { type: 'object', properties: { language: { type: 'string', enum: ['en', 'es'] } }, required: ['language'] },
   },
-  { name: 'end_call', description: 'Hang up after the goodbye.', parameters: { type: 'object', properties: {} } },
+  { name: 'end_call', description: 'Hang up after the goodbye. Say goodbye once, before calling this, and nothing after it.', parameters: { type: 'object', properties: {} } },
 ];
 
 const CONFIRM_TEXT = {
@@ -124,7 +125,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
       const bad = dateProblem(date);
       if (bad) return bad;
       const b = barber && !isFirstAvailable(barber) ? findBarber(barber) : null;
-      if (barber && !isFirstAvailable(barber) && !b) return { ok: false, error: 'UNKNOWN_BARBER', known_barbers: shop.barbers.map((x) => x.name), say: 'That name is not on the list you have. Offer the barbers you know of, or say the team will follow up.' };
+      if (barber && !isFirstAvailable(barber) && !b) return { ok: false, error: 'UNKNOWN_BARBER', known_barbers: shop.barbers.map((x) => x.name), say: `You do not have ${barber}'s schedule on this line. Do not switch to another barber on your own. You can still send the request for ${barber}, and the team will confirm.` };
       if (b && b.hours) {
         const h = b.hours[weekdayOf(date)];
         if (!h) return { ok: true, live_calendar: false, works_that_day: false, say: `${b.name}'s listing shows no hours that day. Ask for another day.` };
@@ -155,8 +156,12 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
       return { ok: true, say: 'Do not promise a text. You may say they might also get a text with their request details.' };
     },
 
-    notify_shop({ summary, caller_name, callback_phone, urgent }) {
+    notify_shop({ summary, caller_name, callback_phone, urgent, caller_declined }) {
       if (!summary) return { ok: false, error: 'NO_SUMMARY' };
+      // An upset caller with no way to reach them back is a handoff nobody can act on.
+      if (urgent && !caller_declined && (!caller_name || !callback_phone)) {
+        return { ok: false, error: 'ASK_NAME_AND_NUMBER_FIRST', say: 'Nothing was sent yet. Apologize, then ask for their name and the best number to call them back, read the number back in words, and call this again. If they refuse, call it with caller_declined true.' };
+      }
       const phone = callback_phone ? normPhone(callback_phone) : null;
       if (callback_phone && !phone) return { ok: false, error: 'BAD_PHONE', say: 'Ask for the full ten digit number.' };
       const body = `${urgent ? 'URGENT ' : ''}${shop.spoken_name} call: ${summary}${caller_name ? ` From ${caller_name}.` : ''}${phone ? ` Call back ${phone}.` : ''}`;
@@ -166,7 +171,7 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
     },
 
     set_language: ({ language }) => (['en', 'es'].includes(language) ? { ok: true, language } : { ok: false, error: 'UNSUPPORTED_LANGUAGE' }),
-    end_call: () => ({ ok: true }),
+    end_call: () => ({ ok: true, say: 'The call is ending. Say nothing more.' }),
   };
 
   function placeRequest(args, tool) {
@@ -177,25 +182,30 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
     if (!phone) return { ok: false, error: 'BAD_PHONE', say: 'Ask for the full ten digit mobile number.' };
     if (!args.customer_name) return { ok: false, error: 'NO_NAME', say: 'Ask for a name.' };
 
-    const anyone = isFirstAvailable(args.barber);
+    const anyone = !args.barber || isFirstAvailable(args.barber);
     const barber = anyone ? null : findBarber(args.barber);
-    if (!anyone && !barber) return { ok: false, error: 'UNKNOWN_BARBER', known_barbers: shop.barbers.map((b) => b.name), say: 'That name is not on your list.' };
+    // A barber the live pages don't list (the owner, a new hire) is still a real
+    // preference. Pass it to the team instead of quietly booking "first available".
+    const requestedName = !anyone && !barber ? String(args.barber).trim().slice(0, 60) : null;
+    if (requestedName && tool === 'request_approval') return { ok: false, error: 'USE_BOOK', say: 'Call book with the same details.' };
     if (barber && barber.external && tool === 'book') return { ok: false, error: 'USE_REQUEST_APPROVAL', say: `${barber.name} is on an outside calendar. Call request_approval with the same details.` };
     if (tool === 'request_approval' && (!barber || !barber.external)) return { ok: false, error: 'USE_BOOK', say: 'Call book with the same details.' };
 
     const service = findService(barber, args.service);
     if (!service) return { ok: false, error: 'UNKNOWN_SERVICE', available: serviceNames(barber), say: 'Offer one of the available services for this barber.' };
 
-    const what = `${service.name}${barber ? ` with ${barber.name}` : ''} on ${args.date} around ${spoken(args.time)}`;
+    const barberLabel = barber ? barber.name : requestedName || 'first available';
+    const what = `${service.name}${barber || requestedName ? ` with ${barberLabel}` : ''} on ${args.date} around ${spoken(args.time)}`;
     const r = ledger.create({
       type: 'booking', status: barber && barber.external ? 'awaiting_barber_approval' : 'awaiting_shop_confirmation',
-      service: service.name, barber: barber ? barber.name : 'first available', date: args.date, time: args.time,
+      service: service.name, barber: barberLabel, barber_on_file: !requestedName, date: args.date, time: args.time,
       customer_name: args.customer_name, customer_phone: phone, what, language: getLanguage(),
     });
     const detail = `${args.customer_name} (${phone}) asks for ${what}. Ref ${r.code}.`;
     if (barber && barber.external) sms.notifyBarber(barber.name, `${shop.spoken_name} request: ${detail} Booked outside this line, so please add it to your calendar and text them to confirm.`);
-    else sms.notifyShop(`${shop.spoken_name} booking request: ${detail} Please add it to the calendar and text them to confirm.`);
-    return { ok: true, status: r.status, confirmation_code: r.code, say: 'Tell the caller this is a request and the team will reach out to confirm. Do not promise a text. Then call send_confirmation.' };
+    else sms.notifyShop(`${shop.spoken_name} booking request: ${detail}${requestedName ? ` ${requestedName} is not on this line's list, so please pass it on.` : ''} Please add it to the calendar and text them to confirm.`);
+    const asked = requestedName ? ` Tell them you passed along that they asked for ${requestedName}.` : '';
+    return { ok: true, status: r.status, confirmation_code: r.code, say: `Tell the caller this is a request and the team will reach out to confirm.${asked} Do not promise a text. Then call send_confirmation.` };
   }
 
   function changeRequest(args, type, change) {

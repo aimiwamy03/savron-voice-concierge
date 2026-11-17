@@ -84,7 +84,7 @@ test('rescheduling a booking from elsewhere still reaches a person', () => {
 
 test('without Twilio nothing is sent, and the outbox says so', () => {
   const { tools, sms } = setup();
-  tools.run('notify_shop', { summary: 'Upset caller', urgent: true });
+  tools.run('notify_shop', { summary: 'Upset caller', urgent: true, caller_name: 'Pat', callback_phone: '6125550111' });
   assert.strictEqual(sms.live, false);
   assert.strictEqual(sms.outbox[0].status, 'not_sent_no_twilio');
   assert.match(sms.outbox[0].body, /^URGENT/);
@@ -100,4 +100,34 @@ test('no tool tells the agent to promise a text will arrive', () => {
   const confirm = tools.run('send_confirmation', { confirmation_code: booked.confirmation_code });
   for (const r of [avail, booked, approval, moved, confirm]) assert.doesNotMatch(r.say || '', promise);
   assert.match(confirm.say, /Do not promise a text/);
+});
+
+test('an upset caller handoff needs a name and callback number unless they refused', () => {
+  const { tools, sms } = setup();
+  const blocked = tools.run('notify_shop', { summary: 'Wants a refund for a bad cut', urgent: true });
+  assert.strictEqual(blocked.error, 'ASK_NAME_AND_NUMBER_FIRST');
+  assert.strictEqual(sms.outbox.length, 0);
+  assert.strictEqual(tools.run('notify_shop', { summary: 'Wants a refund', urgent: true, caller_name: 'Pat' }).error, 'ASK_NAME_AND_NUMBER_FIRST');
+  assert.strictEqual(tools.run('notify_shop', { summary: 'Wants a refund', urgent: true, caller_name: 'Pat', callback_phone: '612 555 0111' }).ok, true);
+  assert.strictEqual(tools.run('notify_shop', { summary: 'Refused to give details', urgent: true, caller_declined: true }).ok, true);
+  // A non urgent question still goes through without details.
+  assert.strictEqual(tools.run('notify_shop', { summary: 'Asked about parking' }).ok, true);
+});
+
+test('a barber the agent does not know is passed along, never swapped for first available', () => {
+  const { tools, ledger, sms } = setup();
+  const r = tools.run('book', req({ barber: 'Albe' }));
+  assert.strictEqual(r.ok, true);
+  assert.match(r.say, /asked for Albe/);
+  const saved = ledger.get(r.confirmation_code);
+  assert.strictEqual(saved.barber, 'Albe');
+  assert.strictEqual(saved.barber_on_file, false);
+  assert.match(sms.outbox[0].body, /Albe is not on this line's list/);
+  assert.match(tools.run('check_availability', { barber: 'Albe', date: '2026-11-07' }).say, /send the request for Albe/);
+  assert.strictEqual(ledger.get(tools.run('book', req({ barber: 'first available' })).confirmation_code).barber, 'first available');
+});
+
+test('end_call tells the agent to stay quiet', () => {
+  const { tools } = setup();
+  assert.match(tools.run('end_call', {}).say, /Say nothing more/);
 });

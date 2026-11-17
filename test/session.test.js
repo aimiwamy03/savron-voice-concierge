@@ -190,3 +190,23 @@ test('validSignature rejects a wrong or missing signature', () => {
   assert.strictEqual(validSignature({ authToken: '', url: 'u', params: {}, signature: 'AAAA' }), false);
   assert.strictEqual(validSignature({ authToken: 't', url: 'u', params: {}, signature: undefined }), false);
 });
+
+test('end_call after the goodbye has finished hangs up instead of letting the agent speak again', async () => {
+  const r = await rig();
+  const dgConn = once(r.dgServer, 'connection');
+  const ws = new WebSocket(`ws://127.0.0.1:${r.port}/call`);
+  const caller = collector(ws);
+  const dg = await dgConn;
+  const agent = collector(dg);
+  await agent.until((m) => m.type === 'Settings');
+  dg.send(JSON.stringify({ type: 'SettingsApplied' }));
+  await caller.until((m) => m.status === 'live');
+
+  dg.send(JSON.stringify({ type: 'AgentStartedSpeaking' }));
+  dg.send(JSON.stringify({ type: 'ConversationText', role: 'assistant', content: 'Thanks for calling. Have a great day.' }));
+  dg.send(JSON.stringify({ type: 'AgentAudioDone' }));
+  dg.send(JSON.stringify({ type: 'FunctionCallRequest', functions: [{ id: 'bye', name: 'end_call', arguments: '{}', client_side: true }] }));
+  await caller.until((m) => m.status === 'ended');
+  assert.ok(!agent.msgs.some((m) => m.type === 'FunctionCallResponse' && m.id === 'bye'), 'no response, so no second goodbye');
+  r.stop();
+});

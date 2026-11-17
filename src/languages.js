@@ -14,7 +14,14 @@ const ES_WORDS = new Set(['hola', 'quiero', 'quisiera', 'necesito', 'puedo', 'pa
 const EN_WORDS = new Set(['the', 'i', 'want', 'to', 'a', 'an', 'is', 'my', 'and', 'for', 'can', 'please', 'yes', 'book', 'haircut', 'what', 'how', 'thanks', 'you', 'it', 'that', 'do', 'have', 'with', 'this', 'at', 'on', 'of', 'in', 'would', 'like', 'need', 'get', 'could', 'are', 'we', 'me', 'your', 'appointment', 'time']);
 
 // Best guess from one caller turn, so the reply can already use the right voice.
+// A turn of one or two words ("Lucía", "sí", "okay", a phone number) says
+// little about language, so it never switches the call: a Spanish caller who
+// answers with just her name used to get the read-back in English.
+const MIN_WORDS_TO_SWITCH = 3;
+
 function detectLanguage(msg) {
+  const wordCount = (String(msg.content || '').match(/[a-záéíóúñü]+/gi) || []).length;
+  if (wordCount < MIN_WORDS_TO_SWITCH) return null;
   if (Array.isArray(msg.languages) && msg.languages.length) {
     const top = String(msg.languages[0]).toLowerCase().split('-')[0];
     if (NAMES[top]) return top;

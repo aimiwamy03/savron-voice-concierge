@@ -27,6 +27,7 @@ class CallSession {
     this.closed = false;
     this.strikes = 0;
     this.pendingEnd = false;
+    this.speaking = false;
     this.cancelled = new Set();
     this.history = [];
     this.language = 'en';
@@ -78,8 +79,9 @@ class CallSession {
           if (l) this.switchLanguage(l);
         }
         break;
-      case 'AgentStartedSpeaking': this.clearSilence(); break;
+      case 'AgentStartedSpeaking': this.speaking = true; this.clearSilence(); break;
       case 'AgentAudioDone':
+        this.speaking = false;
         if (this.pendingEnd) { setTimeout(() => this.close(), 1500); break; } // let the goodbye finish
         this.armSilence();
         break;
@@ -126,7 +128,17 @@ class CallSession {
       if (fn.client_side === false || this.cancelled.has(fn.id)) continue;
       const result = this.readBackGate(fn) || this.confirmGate(fn) || this.tools.run(fn.name, fn.arguments);
       if (fn.name === 'set_language' && result.ok) this.switchLanguage(result.language);
-      if (fn.name === 'end_call') this.pendingEnd = true;
+      if (fn.name === 'end_call') {
+        this.pendingEnd = true;
+        // The goodbye usually finishes before end_call arrives. Answering the call
+        // would make the agent say goodbye again, so hang up instead.
+        if (!this.speaking) {
+          this.toClient({ type: 'tool', name: fn.name, arguments: safeParse(fn.arguments), result });
+          // If the goodbye starts after all, AgentAudioDone closes the call instead.
+          setTimeout(() => { if (!this.speaking) this.close(); }, 1500);
+          continue;
+        }
+      }
       if (this.language !== 'en') result.reply_language = lang.NAMES[this.language];
       this.toClient({ type: 'tool', name: fn.name, arguments: safeParse(fn.arguments), result });
       this.sendDg({ type: 'FunctionCallResponse', id: fn.id, name: fn.name, content: JSON.stringify(result) });

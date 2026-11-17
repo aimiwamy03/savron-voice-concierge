@@ -24,10 +24,11 @@ function loadShopConfig(id) {
   return JSON.parse(fs.readFileSync(path.join(projectRoot(), 'shops', `${id}.json`), 'utf8'));
 }
 
-// SHOP picks the config. With a single file in shops/, that one is the default.
+// SHOP picks the config. With a single config in shops/, that one is the default.
+// <id>.data.json files are a shop's hand-checked data, not configs.
 function defaultShopId(env = process.env) {
   if (env.SHOP) return env.SHOP;
-  const ids = fs.readdirSync(path.join(projectRoot(), 'shops')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
+  const ids = fs.readdirSync(path.join(projectRoot(), 'shops')).filter((f) => f.endsWith('.json') && !f.endsWith('.data.json')).map((f) => f.slice(0, -5));
   if (ids.length !== 1) throw new Error(`Set SHOP to one of: ${ids.join(', ')}`);
   return ids[0];
 }

@@ -1,0 +1,561 @@
+{
+  "_comment": "Checked by hand against savronmn.com (home, booking pages for each barber, menu article, terms) and SAVRON booking schedules. Live sources in shops/savron.json win for any fact they return; this file fills the gaps. Barber hours and menus here come from the shop site, so they replace a third-party listing (Booksy).",
+  "verified_at": "2026-11-16",
+  "facts": {
+    "name": "SAVRON Barbershop & Lounge",
+    "owner": "Albe Herrera",
+    "address_full": "250 N 3rd Ave, Ste 102, Minneapolis, MN 55401",
+    "neighborhood": "North Loop",
+    "email": "info@savronmn.com",
+    "website": "https://savronmn.com",
+    "booking_url": "https://savronmn.com/booking",
+    "rating": 4.9,
+    "review_count": 311,
+    "walk_ins": "Walk-ins welcome. Appointments recommended.",
+    "cancellation_policy": "Cancel or reschedule at least 24 hours in advance.",
+    "membership": "Leave your name and email. Members get a digital pass for Apple Wallet or Google Wallet that tracks visits.",
+    "membership_access": "Invitation only",
+    "happy_hour": "Happy Hour is 10 dollars off. The website does not list the days or times, so the team confirms them.",
+    "shop_hours": {
+      "mon": [
+        "09:00",
+        "19:00"
+      ],
+      "tue": [
+        "09:00",
+        "19:00"
+      ],
+      "wed": [
+        "09:00",
+        "19:00"
+      ],
+      "thu": [
+        "09:00",
+        "19:00"
+      ],
+      "fri": [
+        "09:00",
+        "19:00"
+      ],
+      "sat": [
+        "09:00",
+        "18:00"
+      ],
+      "sun": [
+        "09:00",
+        "14:00"
+      ]
+    }
+  },
+  "services": [
+    {
+      "name": "Signature Cut",
+      "duration_min": 45,
+      "price_usd": 50,
+      "description": "Tailored fade or scissor cut, finished with a clean neckline."
+    },
+    {
+      "name": "Beard Sculpting",
+      "duration_min": 30,
+      "price_usd": 45,
+      "description": "Custom beard finish, hot towel and razor."
+    },
+    {
+      "name": "Long Styles Haircut",
+      "duration_min": 45,
+      "price_usd": 60,
+      "description": "Sculpted cut for longer hair: texture, shape and movement."
+    },
+    {
+      "name": "Haircut + Beard + Hot Towel Shave",
+      "duration_min": 60,
+      "price_usd": 80,
+      "description": "Straight-razor line up, hot towel ritual, conditioning finish."
+    },
+    {
+      "name": "Kids Cut",
+      "duration_min": 30,
+      "price_usd": 50,
+      "description": "Classic precision cut for the next generation."
+    },
+    {
+      "name": "The Executive",
+      "duration_min": 60,
+      "price_usd": 90,
+      "description": "The full SAVRON experience: signature cut paired with a hot towel shave."
+    }
+  ],
+  "addons": [
+    {
+      "name": "Eyebrows",
+      "price_usd": 10
+    }
+  ],
+  "barbers": [
+    {
+      "name": "Albe Herrera",
+      "aliases": [
+        "Albe"
+      ],
+      "role": "owner",
+      "bio": "Owner of SAVRON.",
+      "specialties": [
+        "Signature fades",
+        "Classic cuts",
+        "Beard sculpting",
+        "Textured styles",
+        "Kids cuts",
+        "Hot towel shaves",
+        "Executive cut"
+      ],
+      "hours": {
+        "mon": [
+          "10:00",
+          "19:00"
+        ],
+        "tue": [
+          "10:00",
+          "19:00"
+        ],
+        "wed": [
+          "10:00",
+          "19:00"
+        ],
+        "thu": [
+          "10:00",
+          "19:00"
+        ],
+        "fri": [
+          "10:00",
+          "19:00"
+        ],
+        "sat": [
+          "11:00",
+          "17:30"
+        ],
+        "sun": [
+          "09:00",
+          "14:00"
+        ]
+      },
+      "services": [
+        {
+          "name": "Signature Cut",
+          "duration_min": 45,
+          "price_usd": 50,
+          "description": "Tailored fade or scissor cut, finished with a clean neckline."
+        },
+        {
+          "name": "Beard Sculpting",
+          "duration_min": 30,
+          "price_usd": 45,
+          "description": "Custom beard finish, hot towel and razor."
+        },
+        {
+          "name": "Long Styles Haircut",
+          "duration_min": 45,
+          "price_usd": 60,
+          "description": "Sculpted cut for longer hair: texture, shape and movement."
+        },
+        {
+          "name": "Haircut + Beard + Hot Towel Shave",
+          "duration_min": 60,
+          "price_usd": 80,
+          "description": "Straight-razor line up, hot towel ritual, conditioning finish."
+        },
+        {
+          "name": "Kids Cut",
+          "duration_min": 30,
+          "price_usd": 50,
+          "description": "Classic precision cut for the next generation."
+        },
+        {
+          "name": "The Executive",
+          "duration_min": 60,
+          "price_usd": 90,
+          "description": "The full SAVRON experience: signature cut paired with a hot towel shave."
+        }
+      ]
+    },
+    {
+      "name": "Xavior Williams",
+      "aliases": [
+        "Xavior"
+      ],
+      "role": "barber",
+      "bio": "Born and raised in Texas. Known for attention to detail, quality and creativity.",
+      "specialties": [
+        "Classic cuts",
+        "Hot towel shaves",
+        "Beard design",
+        "Executive cut",
+        "Kids cuts",
+        "Modern cuts"
+      ],
+      "hours": {
+        "mon": [
+          "15:00",
+          "19:00"
+        ],
+        "tue": [
+          "12:00",
+          "19:00"
+        ],
+        "wed": [
+          "12:00",
+          "19:00"
+        ],
+        "thu": [
+          "12:00",
+          "19:00"
+        ],
+        "fri": [
+          "12:00",
+          "19:00"
+        ],
+        "sat": [
+          "10:00",
+          "14:00"
+        ],
+        "sun": [
+          "10:00",
+          "14:00"
+        ]
+      },
+      "services": [
+        {
+          "name": "Signature Cut",
+          "duration_min": 60,
+          "price_usd": 50,
+          "description": "Tailored fade or scissor cut, finished with a clean neckline."
+        },
+        {
+          "name": "Beard Sculpting",
+          "duration_min": 45,
+          "price_usd": 40,
+          "description": "Custom beard finish, hot towel and razor."
+        },
+        {
+          "name": "Haircut + Beard + Hot Towel Shave",
+          "duration_min": 90,
+          "price_usd": 65,
+          "description": "Straight-razor line up, hot towel ritual, conditioning finish."
+        },
+        {
+          "name": "Kids Cut",
+          "duration_min": 60,
+          "price_usd": 35,
+          "description": "Classic precision cut for the next generation."
+        }
+      ]
+    },
+    {
+      "name": "Johander (JM)",
+      "aliases": [
+        "JM",
+        "Johander"
+      ],
+      "role": "barber",
+      "bio": "15 years of experience in classic and modern haircuts, precision fades, tapers and detailed finishes.",
+      "specialties": [
+        "Classic cuts",
+        "Modern cuts",
+        "Precision fades",
+        "Tapers"
+      ],
+      "hours": {
+        "mon": [
+          "09:00",
+          "19:00"
+        ],
+        "tue": [
+          "09:00",
+          "19:00"
+        ],
+        "wed": [
+          "09:00",
+          "19:00"
+        ],
+        "thu": [
+          "09:00",
+          "19:00"
+        ],
+        "fri": [
+          "09:00",
+          "19:00"
+        ],
+        "sat": [
+          "09:00",
+          "16:30"
+        ],
+        "sun": [
+          "09:00",
+          "14:00"
+        ]
+      },
+      "services": [
+        {
+          "name": "Signature Cut",
+          "duration_min": 45,
+          "price_usd": 50,
+          "description": "Tailored fade or scissor cut, finished with a clean neckline."
+        },
+        {
+          "name": "Beard Sculpting",
+          "duration_min": 30,
+          "price_usd": 45,
+          "description": "Custom beard finish, hot towel and razor."
+        },
+        {
+          "name": "Long Styles Haircut",
+          "duration_min": 60,
+          "price_usd": 60,
+          "description": "Sculpted cut for longer hair: texture, shape and movement."
+        },
+        {
+          "name": "Haircut + Beard + Hot Towel Shave",
+          "duration_min": 60,
+          "price_usd": 80,
+          "description": "Straight-razor line up, hot towel ritual, conditioning finish."
+        },
+        {
+          "name": "Kids Cut",
+          "duration_min": 30,
+          "price_usd": 50,
+          "description": "Classic precision cut for the next generation."
+        },
+        {
+          "name": "The Executive",
+          "duration_min": 75,
+          "price_usd": 90,
+          "description": "The full SAVRON experience: signature cut paired with a hot towel shave."
+        }
+      ]
+    },
+    {
+      "name": "Paul G",
+      "aliases": [
+        "Paul",
+        "Paul G."
+      ],
+      "role": "barber",
+      "bio": "Trained in Ecuador and Santiago de Chile. Scissor work, fades, texture design and complex hair patterns.",
+      "specialties": [
+        "Signature fades",
+        "Hot towel shaves",
+        "Beard design",
+        "Textured styles",
+        "Line-ups",
+        "Kids cuts",
+        "Modern cuts",
+        "Executive cut"
+      ],
+      "hours": {
+        "wed": [
+          "10:00",
+          "19:00"
+        ],
+        "thu": [
+          "10:00",
+          "19:00"
+        ],
+        "fri": [
+          "10:00",
+          "19:00"
+        ],
+        "sat": [
+          "09:00",
+          "18:00"
+        ],
+        "sun": [
+          "09:00",
+          "14:00"
+        ]
+      },
+      "services": [
+        {
+          "name": "Signature Cut",
+          "duration_min": 45,
+          "price_usd": 50,
+          "description": "Tailored fade or scissor cut, finished with a clean neckline."
+        },
+        {
+          "name": "Long Styles Haircut",
+          "duration_min": 45,
+          "price_usd": 60,
+          "description": "Sculpted cut for longer hair: texture, shape and movement."
+        },
+        {
+          "name": "Haircut + Beard + Hot Towel Shave",
+          "duration_min": 60,
+          "price_usd": 80,
+          "description": "Straight-razor line up, hot towel ritual, conditioning finish."
+        },
+        {
+          "name": "The Executive",
+          "duration_min": 75,
+          "price_usd": 90,
+          "description": "The full SAVRON experience: signature cut paired with a hot towel shave."
+        }
+      ]
+    },
+    {
+      "name": "Kris Edwards",
+      "aliases": [
+        "Kris",
+        "Krisbladez",
+        "Kris Bladez"
+      ],
+      "role": "barber",
+      "bio": "12+ years. Signature fades, beard designs, textured styles and sharp lines. Also books through his own Booksy page (Krisbladez@Savron).",
+      "specialties": [
+        "Signature fades",
+        "Classic cuts",
+        "Hot towel shaves",
+        "Beard design",
+        "Textured styles",
+        "Line-ups",
+        "Modern cuts",
+        "Executive cut"
+      ],
+      "hours": {
+        "mon": [
+          "10:00",
+          "17:00"
+        ],
+        "tue": [
+          "09:00",
+          "19:00"
+        ],
+        "wed": [
+          "09:00",
+          "19:00"
+        ],
+        "thu": [
+          "09:00",
+          "19:00"
+        ],
+        "fri": [
+          "09:00",
+          "19:00"
+        ],
+        "sat": [
+          "09:00",
+          "16:30"
+        ],
+        "sun": [
+          "10:00",
+          "14:00"
+        ]
+      },
+      "services": [
+        {
+          "name": "Signature Cut",
+          "duration_min": 60,
+          "price_usd": 50,
+          "description": "Tailored fade or scissor cut, finished with a clean neckline."
+        },
+        {
+          "name": "Long Styles Haircut",
+          "duration_min": 60,
+          "price_usd": 60,
+          "description": "Sculpted cut for longer hair: texture, shape and movement."
+        },
+        {
+          "name": "Haircut and Beard Trim",
+          "duration_min": 60,
+          "price_usd": 65,
+          "description": "Precision haircut with a detailed beard trim."
+        },
+        {
+          "name": "Haircut + Beard + Hot Towel Shave",
+          "duration_min": 75,
+          "price_usd": 80,
+          "description": "Straight-razor line up, hot towel ritual, conditioning finish."
+        },
+        {
+          "name": "Kids Cut",
+          "duration_min": 45,
+          "price_usd": 50,
+          "description": "Classic precision cut for the next generation."
+        },
+        {
+          "name": "The Executive",
+          "duration_min": 75,
+          "price_usd": 90,
+          "description": "The full SAVRON experience: signature cut paired with a hot towel shave."
+        }
+      ]
+    },
+    {
+      "name": "Elle Gibeau",
+      "aliases": [
+        "Elle"
+      ],
+      "role": "stylist",
+      "bio": "Aveda Institute graduate (2004). Precision cuts from classic fades to textured crops and longer flow cuts, for men and women. Limited color and wax services.",
+      "specialties": [
+        "Signature fades",
+        "Classic cuts",
+        "Textured styles",
+        "Modern cuts",
+        "Executive cut",
+        "Color work"
+      ],
+      "hours": {
+        "mon": [
+          "09:00",
+          "18:00"
+        ],
+        "tue": [
+          "09:00",
+          "18:00"
+        ],
+        "wed": [
+          "09:00",
+          "18:00"
+        ],
+        "thu": [
+          "09:00",
+          "18:00"
+        ],
+        "fri": [
+          "09:00",
+          "18:00"
+        ]
+      },
+      "services": [
+        {
+          "name": "Signature Cut",
+          "duration_min": 45,
+          "price_usd": 70,
+          "description": "Tailored fade or scissor cut, finished with a clean neckline."
+        },
+        {
+          "name": "Haircut with Eyebrow, Nose or Ear Wax",
+          "duration_min": 45,
+          "price_usd": 85,
+          "description": "Signature cut plus a wax add-on. Each extra wax area is 15 dollars, or 30 dollars for all three."
+        },
+        {
+          "name": "Long Styles Haircut",
+          "duration_min": 45,
+          "price_usd": 70,
+          "description": "Sculpted cut for longer hair: texture, shape and movement."
+        },
+        {
+          "name": "Grey Blending",
+          "duration_min": 30,
+          "price_usd": 50,
+          "description": "Demi-permanent color that blends away grey and fades over time instead of growing out with a line."
+        },
+        {
+          "name": "Haircut and Beard Shaping",
+          "duration_min": 45,
+          "price_usd": 85,
+          "description": "Haircut with beard shaping."
+        }
+      ]
+    }
+  ]
+}

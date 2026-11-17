@@ -2,6 +2,8 @@
 // Sources are read in config order, so for a single fact the earlier source
 // wins and any disagreement is kept in `conflicts`. A source that fails never
 // takes the others down. Unknown stays unknown: nothing here fills a gap.
+const fs = require('node:fs');
+const path = require('node:path');
 const parse = require('./parse');
 
 const UA = 'Mozilla/5.0 (compatible; VoiceConcierge/0.1)';
@@ -54,9 +56,32 @@ function readBooksy(src, html) {
 
 const READERS = { page: readPage, booksy: readBooksy };
 
+// A vetted data file in the repo (shops/<id>.data.json): facts, menus and
+// barbers someone checked by hand. Read last, so a live source still wins on any
+// fact it returns; its barber hours and menus come from the shop's own site, so
+// they replace a third-party listing's (see merge).
+function readFile(src) {
+  // Locally the repo root; on Vercel the bundle puts shops/ in the working directory.
+  const file = [path.resolve(__dirname, '..', '..', src.path), path.resolve(process.cwd(), src.path)].find((f) => fs.existsSync(f)) || src.path;
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  return {
+    verified_at: data.verified_at || null,
+    facts: data.facts || {},
+    services: data.services || [],
+    addons: data.addons || [],
+    barbers: (data.barbers || []).map((b) => ({ calendar: 'shop', ...b, from_file: true })),
+  };
+}
+
 async function readSource(src, opts) {
   const fetched_at = new Date((opts.now || Date.now)()).toISOString();
   const meta = { id: src.id, label: src.label, url: src.url, type: src.type, fetched_at };
+  if (src.type === 'file') {
+    try {
+      const { verified_at, ...out } = readFile(src);
+      return { meta: { ...meta, url: src.path, ok: true, verified_at }, ...out };
+    } catch (e) { return { meta: { ...meta, ok: false, error: e.message } }; }
+  }
   if (src.type === 'constant_url') {
     try {
       await fetchPage(src.url, opts); // only publish a link that works right now
@@ -71,6 +96,21 @@ async function readSource(src, opts) {
   } catch (e) {
     return { meta: { ...meta, ok: false, error: e.name === 'TimeoutError' ? 'timed out' : e.message } };
   }
+}
+
+// The same person can be "Jo" on one source and "Jo Smith" on another.
+// Match on the full name, any alias, or an unambiguous first name.
+function barberKey(barbers, b) {
+  const names = [b.name, ...(b.aliases || [])].map(key).filter(Boolean);
+  for (const n of names) if (barbers.has(n)) return n;
+  for (const [k, cur] of barbers) {
+    const theirs = [cur.name, ...(cur.aliases || [])].map(key);
+    if (names.some((n) => theirs.includes(n))) return k;
+  }
+  const first = key(String(b.name || '').split(/\s+/)[0]);
+  const same = [...barbers.entries()].filter(([, cur]) => key(String(cur.name).split(/\s+/)[0]) === first);
+  if (first && same.length === 1) return same[0][0];
+  return key(b.name);
 }
 
 function merge(config, results) {
@@ -96,9 +136,24 @@ function merge(config, results) {
     }
     for (const a of r.addons) if (!addons.has(key(a.name))) addons.set(key(a.name), { name: clean(a.name, 60), price_usd: a.price_usd, source: from.source });
     for (const b of r.barbers) {
-      const k = key(b.name);
+      const k = barberKey(barbers, b);
       const cur = barbers.get(k);
-      barbers.set(k, { ...(cur || {}), ...b, name: clean(b.name, 60), role: (cur && cur.role === 'owner') ? 'owner' : b.role, sources: [...((cur && cur.sources) || []), from.source] });
+      let next;
+      if (b.from_file && cur) {
+        // Fill gaps only, except the shop's own hours and menu, which replace a listing's.
+        const { from_file: _f, ...rest } = b;
+        next = { ...rest, ...cur };
+        for (const f of ['hours', 'services']) if (rest[f] && (Array.isArray(rest[f]) ? rest[f].length : Object.keys(rest[f]).length)) next[f] = rest[f];
+        if (cur.hours && rest.hours && JSON.stringify(cur.hours) !== JSON.stringify(rest.hours)) next.listing_hours = cur.hours;
+        next.name = clean(rest.name, 60);
+        next.aliases = [...new Set([...(rest.aliases || []), cur.name])];
+      } else {
+        const { from_file: _f, ...rest } = b;
+        next = { ...(cur || {}), ...rest, name: clean(b.name, 60) };
+      }
+      next.role = (cur && cur.role === 'owner') || b.role === 'owner' ? 'owner' : (b.role || (cur && cur.role));
+      next.sources = [...((cur && cur.sources) || []), from.source];
+      barbers.set(k, next);
     }
   }
   const name = facts.name && facts.name.value;

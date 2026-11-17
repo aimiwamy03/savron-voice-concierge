@@ -23,7 +23,9 @@ function shopData(shop) {
     website: fact(shop, 'website'),
     booking_url: fact(shop, 'booking_url'),
     rating: fact(shop, 'rating') && { stars: fact(shop, 'rating'), reviews: fact(shop, 'review_count') },
+    owner: fact(shop, 'owner'),
     walk_ins: fact(shop, 'walk_ins'),
+    happy_hour: fact(shop, 'happy_hour'),
     membership: fact(shop, 'membership') && { how_it_works: fact(shop, 'membership'), access: fact(shop, 'membership_access') },
     cancellation_policy: fact(shop, 'cancellation_policy'),
     shop_hours: hoursLine(hours),
@@ -32,7 +34,10 @@ function shopData(shop) {
     add_ons: shop.addons.map((a) => ({ name: a.name, price_usd: a.price_usd })),
     barbers: shop.barbers.map((b) => ({
       name: b.name,
+      also_called: (b.aliases || []).filter((a) => a !== b.name),
       role: b.role,
+      bio: b.bio || null,
+      specialties: b.specialties || [],
       calendar: b.external ? 'EXTERNAL_CALENDAR' : 'shop',
       own_hours: hoursLine(b.hours),
       own_menu: (b.services || []).map((s) => ({ name: s.name, description: s.description, price_usd: s.price_usd, starting_at: s.price_is_starting, duration_min: s.duration_min })),
@@ -45,7 +50,8 @@ function shopData(shop) {
 // Facts the build sheet expects that the sources did not give us this time.
 function unknowns(shop) {
   const d = shopData(shop);
-  const out = ['parking', 'the current walk in wait', 'payment methods', 'late arrival rules', 'holiday hours', 'the full list of barbers and their days'];
+  const out = ['parking', 'the current walk in wait', 'payment methods', 'late arrival rules', 'holiday hours'];
+  if (!d.barbers.length || d.barbers.some((b) => !b.own_hours)) out.push('the full list of barbers and their days');
   if (!d.shop_hours) out.unshift('the hours of the shop as a whole');
   if (!d.walk_ins) out.push('the walk in policy');
   if (!d.membership) out.push('the membership');

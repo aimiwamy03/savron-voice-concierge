@@ -62,6 +62,12 @@
       "url": "https://northloop.org/this-is-what-the-new-luxury-spot-for-men-will-be/",
       "facts": {},
       "people": [{ "role": "owner", "regex": "The owner,\\s+([A-Z][a-z]+ [A-Z][a-z]+)" }]
+    },
+    {
+      "id": "vetted",
+      "label": "SAVRON data checked by hand",
+      "type": "file",
+      "path": "shops/savron.data.json"
     }
   ]
 }

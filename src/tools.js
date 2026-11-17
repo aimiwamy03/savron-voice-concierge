@@ -103,7 +103,10 @@ function createTools({ shop, ledger, sms, clock = () => new Date(), getLanguage 
   const findBarber = (name) => {
     const n = norm(name);
     if (!n) return null;
-    return shop.barbers.find((b) => norm(b.name) === n || norm(b.name).split(' ')[0] === n.split(' ')[0]) || null;
+    const names = (b) => [b.name, ...(b.aliases || [])].map(norm).filter(Boolean);
+    return shop.barbers.find((b) => names(b).includes(n))
+      || shop.barbers.find((b) => names(b).some((x) => x.split(' ')[0] === n.split(' ')[0]))
+      || null;
   };
   const isFirstAvailable = (name) => /first|any|cualquier|primero|primer/.test(norm(name));
 
